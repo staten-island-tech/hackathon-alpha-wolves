@@ -1,112 +1,100 @@
 import pygame
 import random
+import time
 
 # Initialize Pygame
 pygame.init()
 
-# Set up display
-width, height = 600, 400
-win = pygame.display.set_mode((width, height))
-pygame.display.set_caption("Snake Game")
+# Define Constants
+SCREEN_WIDTH = 600
+SCREEN_HEIGHT = 400
+FPS = 60
+ARROW_SPEED = 5  # Speed at which arrows fall
+KEY_MAP = {
+    pygame.K_UP: 'Up Arrow',
+    pygame.K_DOWN: 'Down Arrow',
+    pygame.K_LEFT: 'Left Arrow',
+    pygame.K_RIGHT: 'Right Arrow'
+}
 
-# Colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
+# Setup screen and clock
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Rhythm Game")
+clock = pygame.time.Clock()
 
-# Game settings
-block_size = 20
-snake_speed = 15
+# Define arrow class
+class Arrow(pygame.sprite.Sprite):
+    def __init__(self, direction):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))
+        self.image.fill((0, 255, 0))
+        self.rect = self.image.get_rect()
+        self.rect.center = (random.randint(100, SCREEN_WIDTH - 100), 0)
+        self.direction = direction
+    
+    def update(self):
+        self.rect.y += ARROW_SPEED
+        if self.rect.top > SCREEN_HEIGHT:
+            self.kill()  # Remove the arrow if it goes off-screen
 
-font_style = pygame.font.SysFont("bahnschrift", 25)
+# Main Game Function
+def game_loop():
+    running = True
+    score = 0
+    arrows_group = pygame.sprite.Group()
+    all_sprites_group = pygame.sprite.Group()
 
-# Snake class
-class Snake:
-    def __init__(self):
-        self.body = [(100, 50), (80, 50), (60, 50)]
-        self.direction = "RIGHT"
+    last_arrow_time = time.time()
 
-    def move(self):
-        head_x, head_y = self.body[0]
-        if self.direction == "RIGHT":
-            head_x += block_size
-        elif self.direction == "LEFT":
-            head_x -= block_size
-        elif self.direction == "UP":
-            head_y -= block_size
-        elif self.direction == "DOWN":
-            head_y += block_size
+    while running:
+        screen.fill((0, 0, 0))  # Clear the screen with black
+
+        # Create new arrows at random intervals
+        if time.time() - last_arrow_time > 1:  # Change interval as needed
+            last_arrow_time = time.time()
+            arrow_direction = random.choice([pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT])
+            new_arrow = Arrow(arrow_direction)
+            arrows_group.add(new_arrow)
+            all_sprites_group.add(new_arrow)
         
-        new_head = (head_x, head_y)
-        self.body = [new_head] + self.body[:-1]
+        # Update the arrows
+        all_sprites_group.update()
 
-    def grow(self):
-        tail_x, tail_y = self.body[-1]
-        if self.direction == "RIGHT":
-            new_tail = (tail_x - block_size, tail_y)
-        elif self.direction == "LEFT":
-            new_tail = (tail_x + block_size, tail_y)
-        elif self.direction == "UP":
-            new_tail = (tail_x, tail_y + block_size)
-        elif self.direction == "DOWN":
-            new_tail = (tail_x, tail_y - block_size)
-        self.body.append(new_tail)
-
-    def draw(self):
-        for segment in self.body:
-            pygame.draw.rect(win, GREEN, pygame.Rect(segment[0], segment[1], block_size, block_size))
-
-# Function to display message
-def message(msg, color):
-    mesg = font_style.render(msg, True, color)
-    win.blit(mesg, [width / 6, height / 3])
-
-def gameLoop():
-    game_over = False
-    clock = pygame.time.Clock()
-    snake = Snake()
-    food = (random.randrange(1, (width // block_size)) * block_size, random.randrange(1, (height // block_size)) * block_size)
-
-    while not game_over:
+        # Handle events (key press, quit)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                game_over = True
+                running = False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT and snake.direction != "RIGHT":
-                    snake.direction = "LEFT"
-                elif event.key == pygame.K_RIGHT and snake.direction != "LEFT":
-                    snake.direction = "RIGHT"
-                elif event.key == pygame.K_UP and snake.direction != "DOWN":
-                    snake.direction = "UP"
-                elif event.key == pygame.K_DOWN and snake.direction != "UP":
-                    snake.direction = "DOWN"
+                if event.key in KEY_MAP:
+                    for arrow in arrows_group:
+                        if arrow.direction == event.key and arrow.rect.colliderect(pygame.Rect(250, SCREEN_HEIGHT - 50, 100, 100)):
+                            # If the arrow matches the key pressed and it reaches the "hit" area
+                            score += 1
+                            arrow.kill()  # Remove arrow from screen
+                            break
 
-        snake.move()
+        # Draw all sprites
+        all_sprites_group.draw(screen)
 
-        # Check if snake collides with the wall or itself
-        head_x, head_y = snake.body[0]
-        if head_x < 0 or head_x >= width or head_y < 0 or head_y >= height or (head_x, head_y) in snake.body[1:]:
-            game_over = True
-            message("You Lost! Press Q-Quit or C-Play Again", RED)
-            pygame.display.update()
+        # Display score
+        font = pygame.font.SysFont(None, 36)
+        score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+        screen.blit(score_text, (10, 10))
 
-        # Check if snake eats the food
-        if (head_x, head_y) == food:
-            snake.grow()
-            food = (random.randrange(1, (width // block_size)) * block_size, random.randrange(1, (height // block_size)) * block_size)
-
-        # Fill screen with black color
-        win.fill(BLACK)
-        snake.draw()
-
-        # Draw food
-        pygame.draw.rect(win, RED, pygame.Rect(food[0], food[1], block_size, block_size))
-
-        pygame.display.update()
-
-        # Set game speed
-        clock.tick(snake_speed)
+        pygame.display.flip()  # Update the display
+        clock.tick(FPS)  # Maintain the FPS
 
     pygame.quit()
+
+# Run the game loop
+game_loop()
+pygame.mixer.music.load('your_song.mp3')
+pygame.mixer.music.play()
+
+# In the game loop, check the current time in the song and spawn arrows accordingly
+current_time = pygame.mixer.music.get_pos() / 1000  # Get time in seconds
+if current_time % 2 == 0:  # Example: spawn an arrow every 2 seconds
+    new_arrow = Arrow(random.choice([pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]))
+    arrows_group.add(new_arrow)
+    all_sprites_group.add(new_arrow)
 
