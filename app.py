@@ -59,18 +59,24 @@ def game_loop():
     all_sprites_group = pygame.sprite.Group()
 
     last_arrow_time = time.time()
+    
+    # Load and play music
+    pygame.mixer.music.load('your_song.mp3')
+    pygame.mixer.music.play()
 
     while running:
         screen.fill((0, 0, 0))  # Clear the screen with black
 
-        # Create new arrows at random intervals
-        if time.time() - last_arrow_time > 1:  # Change interval as needed
-            last_arrow_time = time.time()
+        # Get the current time of the song
+        current_time = pygame.mixer.music.get_pos() / 1000  # Get time in seconds
+        
+        # Spawn arrows based on the song's time
+        if int(current_time) % 2 == 0:  # Example: spawn an arrow every 2 seconds
             arrow_direction = random.choice([pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT])
             new_arrow = Arrow(arrow_direction)
             arrows_group.add(new_arrow)
             all_sprites_group.add(new_arrow)
-        
+
         # Update the arrows
         all_sprites_group.update()
 
@@ -102,13 +108,3 @@ def game_loop():
 
 # Run the game loop
 game_loop()
-pygame.mixer.music.load('your_song.mp3')
-pygame.mixer.music.play()
-
-# In the game loop, check the current time in the song and spawn arrows accordingly
-current_time = pygame.mixer.music.get_pos() / 1000  # Get time in seconds
-if current_time % 2 == 0:  # Example: spawn an arrow every 2 seconds
-    new_arrow = Arrow(random.choice([pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]))
-    arrows_group.add(new_arrow)
-    all_sprites_group.add(new_arrow)
-
