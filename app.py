@@ -47,7 +47,7 @@ def game_loop():
     last_arrow_time = time.time()
 
     # Load and play music
-    pygame.mixer.music.load('your_song.mp3')
+    pygame.mixer.music.load('baby-shark-dance-sing-and-dance-baby-shark-official-pinkfong-songs-for-children-XqZsoesa55w.mp3')
     pygame.mixer.music.play()
 
     while running:
